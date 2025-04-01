@@ -48,12 +48,18 @@ func startServer(server *http.Server) {
 	}
 }
 
+const configFile string = "config.json"
+
 func main() {
+	config, err := ReadConfig(configFile)
+	if err != nil {
+		panic(err)
+	}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/get", getHandler)
 	mux.HandleFunc("/put", putHandler)
-
-	server := &http.Server{Addr: ":8090", Handler: mux}
+	server := &http.Server{Addr: fmt.Sprintf("localhost:%v", config.Port), Handler: mux}
 	go startServer(server)
 
 	stopSignal := make(chan os.Signal, 1)
