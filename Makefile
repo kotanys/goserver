@@ -1,4 +1,4 @@
-SOURCES = $(wildcard *.go)
+SOURCES = $(wildcard src/*.go)
 
 STDOUT = go-server-stdout.txt
 STDERR = go-server-stderr.txt
