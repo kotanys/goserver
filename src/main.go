@@ -25,7 +25,7 @@ func getHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "getting %q\n", req.URL)
+	fmt.Printf("Getting %q\n", req.URL)
 	params := getUrlParameters(req.URL)
 	fmt.Fprintln(w, params)
 }
@@ -36,7 +36,7 @@ func putHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "putting %q\n", req.URL)
+	fmt.Printf("Putting %q\n", req.URL)
 	params := getUrlParameters(req.URL)
 	fmt.Fprintln(w, params)
 }
