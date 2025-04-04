@@ -11,13 +11,13 @@ type Storage struct {
 	data map[StorageKey]StorageValue
 }
 
-func (s *Storage) Get(key StorageKey) (StorageValue, error) {
+func NewStorage() *Storage {
+	return &Storage{data: make(map[StorageKey]StorageValue)}
+}
+
+func (s *Storage) Get(key StorageKey) (StorageValue, bool) {
 	value, exist := s.data[key]
-	if exist {
-		return value, nil
-	} else {
-		return nil, fmt.Errorf("no key %v", key)
-	}
+	return value, exist
 }
 
 func (s *Storage) Put(key StorageKey, value StorageValue) {

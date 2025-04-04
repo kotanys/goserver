@@ -4,51 +4,19 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
 	"time"
 )
 
-func getUrlParameters(u *url.URL) map[string]string {
-	urlParams, _ := url.ParseQuery(u.RawQuery)
-	mapParams := make(map[string]string)
-	for k, v := range urlParams {
-		mapParams[k] = v[0]
-	}
-	return mapParams
-}
-
-func getHandler(w http.ResponseWriter, req *http.Request) {
-	if req.Method != "GET" {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-
-	fmt.Printf("Getting %q\n", req.URL)
-	params := getUrlParameters(req.URL)
-	fmt.Fprintln(w, params)
-}
-
-func putHandler(w http.ResponseWriter, req *http.Request) {
-	if req.Method != "POST" {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-
-	fmt.Printf("Putting %q\n", req.URL)
-	params := getUrlParameters(req.URL)
-	fmt.Fprintln(w, params)
-}
+const configFile string = "config.json"
 
 func startServer(server *http.Server) {
-	fmt.Println("Server started on", server.Addr)
+	fmt.Println("starting server on port", server.Addr)
 	if err := server.ListenAndServe(); err != nil {
-		fmt.Println(err)
+		fmt.Println("server closed with status:", err)
 	}
 }
-
-const configFile string = "config.json"
 
 func main() {
 	config, err := ReadConfig(configFile)
@@ -56,10 +24,9 @@ func main() {
 		panic(err)
 	}
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/get", getHandler)
-	mux.HandleFunc("/put", putHandler)
-	server := &http.Server{Addr: fmt.Sprintf("localhost:%v", config.Port), Handler: mux}
+	storage := NewStorage()
+	handler := NewStorageHttpHandler(storage)
+	server := &http.Server{Addr: fmt.Sprintf("localhost:%v", config.Port), Handler: handler}
 	go startServer(server)
 
 	stopSignal := make(chan os.Signal, 1)
