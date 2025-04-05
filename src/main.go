@@ -26,7 +26,7 @@ func main() {
 
 	storage := NewStorage()
 	handler := NewStorageHttpHandler(storage)
-	server := &http.Server{Addr: fmt.Sprintf("localhost:%v", config.Port), Handler: handler}
+	server := &http.Server{Addr: fmt.Sprintf(":%v", config.Port), Handler: handler}
 	go startServer(server)
 
 	stopSignal := make(chan os.Signal, 1)
