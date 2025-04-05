@@ -1,0 +1,9 @@
+storage.go -- структура Get() Put()
+переписать /put для использования **PUT**; POST DATA
+key   = string
+value = []byte
+type Storage struct {
+    data map[string][]byte
+}
+
+/get возвращает JSON
