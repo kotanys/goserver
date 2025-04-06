@@ -24,8 +24,13 @@ func main() {
 		panic(err)
 	}
 
-	storage := NewStorage()
-	handler := NewStorageHttpHandler(storage)
+	logger, err := NewPeristentLogger(config.LogFile)
+	if err != nil {
+		fmt.Println("! error creating the logger:", err.Error())
+	}
+	defer logger.Close()
+	storage := NewStorage(logger)
+	handler := NewStorageHTTPHandler(storage)
 	server := &http.Server{Addr: fmt.Sprintf(":%v", config.Port), Handler: handler}
 	go startServer(server)
 

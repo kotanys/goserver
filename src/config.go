@@ -6,7 +6,8 @@ import (
 )
 
 type Config struct {
-	Port int `json:"port"`
+	Port    int    `json:"port"`
+	LogFile string `json:"log_file"`
 }
 
 func ReadConfig(fileName string) (*Config, error) {
