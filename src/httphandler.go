@@ -7,22 +7,12 @@ import (
 	"net/url"
 )
 
-type Loggable[T any] interface {
-	FromString(string) T
-	ToString(T) string
-}
-
-type Logger[T Loggable[T]] interface {
-	Log(T)
-	Retrieve() []T
-}
-
-type StorageHttpHandler struct {
+type StorageHTTPHandler struct {
 	mux     *http.ServeMux
 	storage *Storage
 }
 
-func getUrlParameters(u *url.URL) map[string]string {
+func getURLParameters(u *url.URL) map[string]string {
 	urlParams, _ := url.ParseQuery(u.RawQuery)
 	mapParams := make(map[string]string)
 	for k, v := range urlParams {
@@ -31,14 +21,14 @@ func getUrlParameters(u *url.URL) map[string]string {
 	return mapParams
 }
 
-func (handler *StorageHttpHandler) GetHandler(w http.ResponseWriter, req *http.Request) {
-	params := getUrlParameters(req.URL)
+func (h *StorageHTTPHandler) GetHandler(w http.ResponseWriter, req *http.Request) {
+	params := getURLParameters(req.URL)
 	key, exist := params["key"]
 	if !exist {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	value, exist := handler.storage.Get(StorageKey(key))
+	value, exist := h.storage.Get(StorageKey(key))
 	if !exist {
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(w, "%v\n", key)
@@ -47,8 +37,8 @@ func (handler *StorageHttpHandler) GetHandler(w http.ResponseWriter, req *http.R
 	w.Write(value)
 }
 
-func (handler *StorageHttpHandler) PutHandler(w http.ResponseWriter, req *http.Request) {
-	params := getUrlParameters(req.URL)
+func (h *StorageHTTPHandler) PutHandler(w http.ResponseWriter, req *http.Request) {
+	params := getURLParameters(req.URL)
 	key, exist := params["key"]
 	if !exist {
 		w.WriteHeader(http.StatusBadRequest)
@@ -60,18 +50,32 @@ func (handler *StorageHttpHandler) PutHandler(w http.ResponseWriter, req *http.R
 		fmt.Fprintf(w, "%v\n", err.Error())
 		return
 	}
-	handler.storage.Put(StorageKey(key), body)
+	h.storage.Put(StorageKey(key), body)
 }
 
-func NewStorageHttpHandler(storage *Storage) *StorageHttpHandler {
-	handler := &StorageHttpHandler{}
-	handler.storage = storage
-	handler.mux = &http.ServeMux{}
-	handler.mux.HandleFunc("/get", handler.GetHandler)
-	handler.mux.HandleFunc("/put", handler.PutHandler)
-	return handler
+func (h *StorageHTTPHandler) DeleteHandler(w http.ResponseWriter, req *http.Request) {
+	params := getURLParameters(req.URL)
+	key, exist := params["key"]
+	if !exist {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	err := h.storage.Delete(StorageKey(key))
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+	}
 }
 
-func (handler *StorageHttpHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	handler.mux.ServeHTTP(w, req)
+func NewStorageHTTPHandler(storage *Storage) *StorageHTTPHandler {
+	h := &StorageHTTPHandler{}
+	h.storage = storage
+	h.mux = &http.ServeMux{}
+	h.mux.HandleFunc("/get", h.GetHandler)
+	h.mux.HandleFunc("/put", h.PutHandler)
+	h.mux.HandleFunc("/delete", h.DeleteHandler)
+	return h
+}
+
+func (h *StorageHTTPHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	h.mux.ServeHTTP(w, req)
 }
