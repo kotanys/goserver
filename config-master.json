@@ -1,0 +1,6 @@
+{
+    "port": 6969,
+    "log_file": "log.log",
+    "slaves": [6970],
+    "methods": "all"
+}
