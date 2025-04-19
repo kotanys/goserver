@@ -1,5 +1,5 @@
 {
     "port": 6970,
-    "log_file": "",
-    "methods": "GET"
+    "log_file": "log.log",
+    "methods": ["GET"]
 }

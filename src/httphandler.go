@@ -5,11 +5,14 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
+	"strings"
 )
 
 type StorageHTTPHandler struct {
 	mux     *http.ServeMux
 	storage *Storage
+	cfg     *HTTPConfig
 }
 
 func getURLParameters(u *url.URL) map[string]string {
@@ -21,7 +24,15 @@ func getURLParameters(u *url.URL) map[string]string {
 	return mapParams
 }
 
+func (h *StorageHTTPHandler) isMethodAllowed(method string) bool {
+	return slices.ContainsFunc(h.cfg.Methods, func(s string) bool { return strings.EqualFold(s, "all") }) || slices.Contains(h.cfg.Methods, method)
+}
+
 func (h *StorageHTTPHandler) GetHandler(w http.ResponseWriter, req *http.Request) {
+	if !h.isMethodAllowed(http.MethodGet) {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
 	params := getURLParameters(req.URL)
 	key, exist := params["key"]
 	if !exist {
@@ -38,6 +49,10 @@ func (h *StorageHTTPHandler) GetHandler(w http.ResponseWriter, req *http.Request
 }
 
 func (h *StorageHTTPHandler) PutHandler(w http.ResponseWriter, req *http.Request) {
+	if !h.isMethodAllowed(http.MethodPut) {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
 	params := getURLParameters(req.URL)
 	key, exist := params["key"]
 	if !exist {
@@ -54,6 +69,10 @@ func (h *StorageHTTPHandler) PutHandler(w http.ResponseWriter, req *http.Request
 }
 
 func (h *StorageHTTPHandler) DeleteHandler(w http.ResponseWriter, req *http.Request) {
+	if !h.isMethodAllowed(http.MethodDelete) {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
 	params := getURLParameters(req.URL)
 	key, exist := params["key"]
 	if !exist {
@@ -63,9 +82,10 @@ func (h *StorageHTTPHandler) DeleteHandler(w http.ResponseWriter, req *http.Requ
 	h.storage.Delete(StorageKey(key))
 }
 
-func NewStorageHTTPHandler(storage *Storage) *StorageHTTPHandler {
+func NewStorageHTTPHandler(storage *Storage, cfg *HTTPConfig) *StorageHTTPHandler {
 	h := &StorageHTTPHandler{}
 	h.storage = storage
+	h.cfg = cfg
 	h.mux = &http.ServeMux{}
 	h.mux.HandleFunc("/get", h.GetHandler)
 	h.mux.HandleFunc("/put", h.PutHandler)

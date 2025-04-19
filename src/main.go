@@ -36,7 +36,8 @@ func main() {
 		defer logger.Close()
 	}
 	storage := NewStorage(logger, logger != nil)
-	handler := NewStorageHTTPHandler(storage)
+	cfgHttp := MakeHTTPConfig(config)
+	handler := NewStorageHTTPHandler(storage, cfgHttp)
 	server := &http.Server{Addr: fmt.Sprintf(":%v", config.Port), Handler: handler}
 	go startServer(server)
 

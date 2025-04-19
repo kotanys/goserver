@@ -12,6 +12,11 @@ type Config struct {
 	Slaves  []Port   `json:"slaves"`
 	Methods []string `json:"methods"`
 }
+type HTTPConfig struct {
+	Port    Port
+	Slaves  []Port
+	Methods []string
+}
 
 func validateConfig(_ *Config) error {
 	return nil
@@ -29,4 +34,13 @@ func ReadConfig(fileName string) (*Config, error) {
 		return nil, err
 	}
 	return config, nil
+}
+
+func MakeHTTPConfig(cfg *Config) *HTTPConfig {
+	cfgHTTP := &HTTPConfig{
+		Port:    cfg.Port,
+		Slaves:  cfg.Slaves,
+		Methods: cfg.Methods,
+	}
+	return cfgHTTP
 }
