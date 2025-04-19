@@ -60,10 +60,7 @@ func (h *StorageHTTPHandler) DeleteHandler(w http.ResponseWriter, req *http.Requ
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	err := h.storage.Delete(StorageKey(key))
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-	}
+	h.storage.Delete(StorageKey(key))
 }
 
 func NewStorageHTTPHandler(storage *Storage) *StorageHTTPHandler {

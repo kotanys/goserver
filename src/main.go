@@ -29,7 +29,7 @@ func main() {
 		fmt.Println("! error creating the logger:", err.Error())
 	}
 	defer logger.Close()
-	storage := NewStorage(logger)
+	storage := NewStorage(logger, true)
 	handler := NewStorageHTTPHandler(storage)
 	server := &http.Server{Addr: fmt.Sprintf(":%v", config.Port), Handler: handler}
 	go startServer(server)
@@ -39,9 +39,9 @@ func main() {
 	<-stopSignal
 
 	fmt.Println("SIGINT recieved. Shutting down the server.")
-	context, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := server.Shutdown(context); err != nil {
+	if err := server.Shutdown(ctx); err != nil {
 		fmt.Println(err)
 	}
 }
