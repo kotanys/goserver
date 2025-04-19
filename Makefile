@@ -2,16 +2,25 @@ SOURCES = $(wildcard src/*.go)
 
 STDOUT = go-server-stdout.txt
 STDERR = go-server-stderr.txt
-PID = /tmp/.go-server.pid
+PIDMASTER = "/tmp/.go-server-master.pid"
+PIDSLAVE = "/tmp/.go-server-slave.pid"
 
-start :
-	@ go run $(SOURCES) > $(STDOUT) 2> $(STDERR) & echo $$! > $(PID)
-	@ echo PID: `cat $(PID)`
+start : start-master start-slave
+start-master :
+	@ go run $(SOURCES) -- config-master.json > $(STDOUT) 2> $(STDERR) & echo $$! > $(PIDMASTER)
+	@ echo master PID: `cat $(PIDMASTER)`
+start-slave :
+	@ go run $(SOURCES) -- config-slave.json > $(STDOUT) 2> $(STDERR) & echo $$! > $(PIDSLAVE)
+	@ echo slave PID: `cat $(PIDSLAVE)`
 
-stop :
-	@ touch $(PID)
-	@ pkill -2 -P `cat $(PID)` 2>/dev/null
-	@ kill -2 `cat $(PID)` 2>/dev/null
-	@ rm $(PID)
+stop : stop-master stop-slave
+stop-master :
+	@ pkill -2 -P `cat $(PIDMASTER)` 2>/dev/null
+	@ kill -2 `cat $(PIDMASTER)` 2>/dev/null
+	@ rm $(PIDMASTER)
+stop-slave :
+	@ pkill -2 -P `cat $(PIDSLAVE)` 2>/dev/null
+	@ kill -2 `cat $(PIDSLAVE)` 2>/dev/null
+	@ rm $(PIDSLAVE)
 
-.PHONY : start stop
+.PHONY : start stop start-master start-slave

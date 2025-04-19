@@ -9,8 +9,6 @@ import (
 	"time"
 )
 
-const configFile string = "config.json"
-
 func startServer(server *http.Server) {
 	fmt.Println("starting server on port", server.Addr)
 	if err := server.ListenAndServe(); err != nil {
@@ -19,17 +17,25 @@ func startServer(server *http.Server) {
 }
 
 func main() {
-	config, err := ReadConfig(configFile)
+	if len(os.Args) <= 1 {
+		fmt.Printf("usage: %v config_file\n", os.Args[0])
+		fmt.Println("provide a configuration file")
+		return
+	}
+	config, err := ReadConfig(os.Args[len(os.Args)-1])
 	if err != nil {
 		panic(err)
 	}
 
-	logger, err := NewPeristentLogger(config.LogFile)
-	if err != nil {
-		fmt.Println("! error creating the logger:", err.Error())
+	var logger *PersistentLogger = nil
+	if config.LogFile != "" {
+		logger, err = NewPeristentLogger(config.LogFile)
+		if err != nil {
+			fmt.Println("! error creating the logger:", err.Error())
+		}
+		defer logger.Close()
 	}
-	defer logger.Close()
-	storage := NewStorage(logger, true)
+	storage := NewStorage(logger, logger != nil)
 	handler := NewStorageHTTPHandler(storage)
 	server := &http.Server{Addr: fmt.Sprintf(":%v", config.Port), Handler: handler}
 	go startServer(server)

@@ -5,9 +5,16 @@ import (
 	"os"
 )
 
+type Port int
 type Config struct {
-	Port    int    `json:"port"`
-	LogFile string `json:"log_file"`
+	Port    Port     `json:"port"`
+	LogFile string   `json:"log_file"`
+	Slaves  []Port   `json:"slaves"`
+	Methods []string `json:"methods"`
+}
+
+func validateConfig(_ *Config) error {
+	return nil
 }
 
 func ReadConfig(fileName string) (*Config, error) {
@@ -18,5 +25,8 @@ func ReadConfig(fileName string) (*Config, error) {
 	}
 
 	json.Unmarshal(bytes, config)
+	if err := validateConfig(config); err != nil {
+		return nil, err
+	}
 	return config, nil
 }

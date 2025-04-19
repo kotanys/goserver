@@ -22,7 +22,7 @@ func NewStorage(log *PersistentLogger, persistent bool) *Storage {
 		}
 		fmt.Printf("ended recovering: recovered %v entries\n", len(st.data))
 	}
-	st.persistent = true
+	st.persistent = persistent
 	return st
 }
 
