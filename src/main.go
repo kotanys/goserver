@@ -36,7 +36,11 @@ func watchConfigChange(cfg *Config, filePath string, ctx context.Context) {
 
 			if stat.Size() != initialStat.Size() || stat.ModTime() != initialStat.ModTime() {
 				fmt.Printf("Hot-reload: %v changed, reloading config\n", filePath)
-				cfg.Update(filePath)
+				err := cfg.Update(filePath)
+				if err != nil {
+					fmt.Printf("Hot-reload: error reading %v", filePath)
+					return
+				}
 				initialStat = stat
 			}
 
