@@ -16,13 +16,42 @@ func startServer(server *http.Server) {
 	}
 }
 
+func watchConfigChange(cfg *Config, filePath string, ctx context.Context) {
+	initialStat, err := os.Stat(filePath)
+	if err != nil {
+		fmt.Printf("Can't stat %v for watching\n", filePath)
+		return
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			stat, err := os.Stat(filePath)
+			if err != nil {
+				fmt.Printf("Can't stat %v for watching\n", filePath)
+				return
+			}
+
+			if stat.Size() != initialStat.Size() || stat.ModTime() != initialStat.ModTime() {
+				cfg.Update(filePath)
+				initialStat = stat
+			}
+
+			time.Sleep(1 * time.Second)
+		}
+	}
+}
+
 func main() {
 	if len(os.Args) <= 1 {
 		fmt.Printf("usage: %v config_file\n", os.Args[0])
 		fmt.Println("provide a configuration file")
 		return
 	}
-	config, err := ReadConfig(os.Args[len(os.Args)-1])
+	fileName := os.Args[len(os.Args)-1]
+	config, err := ReadConfig(fileName)
 	if err != nil {
 		panic(err)
 	}
@@ -35,8 +64,11 @@ func main() {
 		}
 		defer logger.Close()
 	}
+
+	cfgStorage := MakeStorageConfig(config)
+	storage := NewStorage(logger, cfgStorage)
+
 	servers := []*http.Server{}
-	storage := NewStorage(logger, config.Persistent)
 	cfgHttp := MakeHTTPConfig(config, false)
 	handler := NewStorageHTTPHandler(storage, cfgHttp)
 	server := &http.Server{Addr: fmt.Sprintf(":%v", cfgHttp.Port), Handler: handler}
@@ -51,15 +83,19 @@ func main() {
 		go startServer(internalServer)
 	}
 
+	watchCtx, watchCancel := context.WithCancel(context.Background())
+	go watchConfigChange(config, fileName, watchCtx)
+
 	stopSignal := make(chan os.Signal, 1)
 	signal.Notify(stopSignal, os.Interrupt)
 	<-stopSignal
 
+	watchCancel()
 	fmt.Println("SIGINT recieved. Shutting down the server.")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
 	for _, server := range servers {
-		if err := server.Shutdown(ctx); err != nil {
+		if err := server.Shutdown(shutdownCtx); err != nil {
 			fmt.Println(err)
 		}
 	}

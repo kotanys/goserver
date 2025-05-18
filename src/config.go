@@ -15,38 +15,67 @@ type Config struct {
 	Persistent   bool     `json:"persistent"`
 }
 type HTTPConfig struct {
-	Port    Port
-	Slaves  []Port
-	Methods []string
+	Port       Port
+	Slaves     []Port
+	Methods    []string
+	isInternal bool
+	core       *Config
+}
+type StorageConfig struct {
+	Persistent bool
+	core       *Config
 }
 
 func validateConfig(_ *Config) error {
 	return nil
 }
 
-func ReadConfig(fileName string) (*Config, error) {
-	config := &Config{}
+func (cfg *Config) Update(fileName string) error {
 	bytes, err := os.ReadFile(fileName)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	json.Unmarshal(bytes, config)
-	if err := validateConfig(config); err != nil {
-		return nil, err
+	json.Unmarshal(bytes, cfg)
+	if err := validateConfig(cfg); err != nil {
+		return err
 	}
-	return config, nil
+	return nil
+}
+
+func ReadConfig(fileName string) (*Config, error) {
+	cfg := &Config{}
+	cfg.Update(fileName)
+	return cfg, nil
 }
 
 func MakeHTTPConfig(cfg *Config, useInternalPort bool) *HTTPConfig {
-	port := cfg.Port
-	if useInternalPort {
-		port = cfg.InternalPort
-	}
 	cfgHTTP := &HTTPConfig{
-		Port:    port,
-		Slaves:  cfg.Slaves,
-		Methods: cfg.Methods,
+		core:       cfg,
+		isInternal: useInternalPort,
 	}
+	cfgHTTP.Update()
 	return cfgHTTP
+}
+
+func (cfg *HTTPConfig) Update() {
+	port := cfg.core.Port
+	if cfg.isInternal {
+		port = cfg.core.InternalPort
+	}
+	cfg.Port = port
+	cfg.Slaves = cfg.core.Slaves
+	cfg.Methods = cfg.core.Methods
+}
+
+func MakeStorageConfig(cfg *Config) *StorageConfig {
+	cfgStorage := &StorageConfig{
+		core: cfg,
+	}
+	cfgStorage.Update()
+	return cfgStorage
+}
+
+func (cfg *StorageConfig) Update() {
+	cfg.Persistent = cfg.core.Persistent
 }

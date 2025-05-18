@@ -66,5 +66,6 @@ func NewInternalStorageHTTPHandler(storage *Storage, cfg *HTTPConfig) *InternalS
 }
 
 func (h *InternalStorageHTTPHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	h.cfg.Update()
 	h.mux.ServeHTTP(w, req)
 }

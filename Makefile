@@ -7,10 +7,10 @@ PIDSLAVE = "/tmp/.go-server-slave.pid"
 
 start : start-master start-slave
 start-master :
-	@ go run $(SOURCES) -- config-master.json > $(STDOUT) 2> $(STDERR) & echo $$! > $(PIDMASTER)
+	@ go run $(SOURCES) -- config-master.json > $(STDOUT) & echo $$! > $(PIDMASTER)
 	@ echo master PID: `cat $(PIDMASTER)`
 start-slave :
-	@ go run $(SOURCES) -- config-slave.json > $(STDOUT)2 2> $(STDERR)2 & echo $$! > $(PIDSLAVE)
+	@ go run $(SOURCES) -- config-slave.json > $(STDOUT)2 & echo $$! > $(PIDSLAVE)
 	@ echo slave PID: `cat $(PIDSLAVE)`
 
 stop : stop-master stop-slave

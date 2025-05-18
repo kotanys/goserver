@@ -145,5 +145,6 @@ func NewStorageHTTPHandler(storage *Storage, cfg *HTTPConfig) *StorageHTTPHandle
 }
 
 func (h *StorageHTTPHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	h.cfg.Update()
 	h.mux.ServeHTTP(w, req)
 }
