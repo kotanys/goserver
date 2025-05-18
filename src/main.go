@@ -19,7 +19,7 @@ func startServer(server *http.Server) {
 func watchConfigChange(cfg *Config, filePath string, ctx context.Context) {
 	initialStat, err := os.Stat(filePath)
 	if err != nil {
-		fmt.Printf("Can't stat %v for watching\n", filePath)
+		fmt.Printf("Hot-reload: Can't stat %v for watching\n", filePath)
 		return
 	}
 
@@ -30,11 +30,12 @@ func watchConfigChange(cfg *Config, filePath string, ctx context.Context) {
 		default:
 			stat, err := os.Stat(filePath)
 			if err != nil {
-				fmt.Printf("Can't stat %v for watching\n", filePath)
+				fmt.Printf("Hot-reload: Can't stat %v for watching\n", filePath)
 				return
 			}
 
 			if stat.Size() != initialStat.Size() || stat.ModTime() != initialStat.ModTime() {
+				fmt.Printf("Hot-reload: %v changed, reloading config\n", filePath)
 				cfg.Update(filePath)
 				initialStat = stat
 			}
