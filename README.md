@@ -69,11 +69,13 @@ On startup, server instance reads data from `log_file`, that has new-line separa
 PUT {"key":"KEY","value":"VALUE"}
 DELETE {"key":"KEY"}
 ```
+> Note
+> VALUE here is Base64 encoded.
 
 On receiving a mutating request (i.e. PUT or DELETE), provided `persistent` is *true*, server writes new entries to `log_file`.
 > Note
 > Given a master and a slave server (master has `slaves` set to slave's `internal_port`), that means that mutating requests will result in duplicating `log_file` values.
-> Since PUT and DELETE are idempotent, that shouldn't corrupt the data, but will result in redundant lines in `log_file`
+> Since PUT and DELETE are idempotent, that shouldn't corrupt the data, but will result in redundant lines in `log_file`.
 
 ## Hot-reloading
 Upon startup, server starts watching it's config file changes, and if it notices them, it will read it and have it's config values changed.\
