@@ -1,5 +1,7 @@
 {
     "port": 6970,
+    "internal_port": 6971,
     "log_file": "log.log",
+    "persistent": false,
     "methods": ["GET"]
 }

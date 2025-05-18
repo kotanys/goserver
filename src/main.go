@@ -35,11 +35,21 @@ func main() {
 		}
 		defer logger.Close()
 	}
-	storage := NewStorage(logger, logger != nil)
-	cfgHttp := MakeHTTPConfig(config)
+	servers := []*http.Server{}
+	storage := NewStorage(logger, config.Persistent)
+	cfgHttp := MakeHTTPConfig(config, false)
 	handler := NewStorageHTTPHandler(storage, cfgHttp)
-	server := &http.Server{Addr: fmt.Sprintf(":%v", config.Port), Handler: handler}
+	server := &http.Server{Addr: fmt.Sprintf(":%v", cfgHttp.Port), Handler: handler}
+	servers = append(servers, server)
 	go startServer(server)
+
+	if config.InternalPort != 0 {
+		internalCfgHttp := MakeHTTPConfig(config, true)
+		internalHandler := NewInternalStorageHTTPHandler(storage, internalCfgHttp)
+		internalServer := &http.Server{Addr: fmt.Sprintf(":%v", internalCfgHttp.Port), Handler: internalHandler}
+		servers = append(servers, internalServer)
+		go startServer(internalServer)
+	}
 
 	stopSignal := make(chan os.Signal, 1)
 	signal.Notify(stopSignal, os.Interrupt)
@@ -48,7 +58,9 @@ func main() {
 	fmt.Println("SIGINT recieved. Shutting down the server.")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := server.Shutdown(ctx); err != nil {
-		fmt.Println(err)
+	for _, server := range servers {
+		if err := server.Shutdown(ctx); err != nil {
+			fmt.Println(err)
+		}
 	}
 }

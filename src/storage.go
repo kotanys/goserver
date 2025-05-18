@@ -13,7 +13,7 @@ type Storage struct {
 
 func NewStorage(log *PersistentLogger, persistent bool) *Storage {
 	st := &Storage{data: make(map[StorageKey]StorageValue), log: log, persistent: false}
-	if persistent {
+	if log != nil {
 		opChan := make(chan LogOperation, 10)
 		fmt.Println("started recovering")
 		go log.Replay(opChan)

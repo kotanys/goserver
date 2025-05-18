@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,6 +14,7 @@ type StorageHTTPHandler struct {
 	mux     *http.ServeMux
 	storage *Storage
 	cfg     *HTTPConfig
+	client  *http.Client
 }
 
 func getURLParameters(u *url.URL) map[string]string {
@@ -48,6 +50,48 @@ func (h *StorageHTTPHandler) GetHandler(w http.ResponseWriter, req *http.Request
 	w.Write(value)
 }
 
+func (h *StorageHTTPHandler) resendPutToSlaves(key StorageKey, value StorageValue) error {
+	for _, slave := range h.cfg.Slaves {
+		req, _ := http.NewRequest(
+			http.MethodPut,
+			fmt.Sprintf("http://localhost:%v/put_internal?key=%v", slave, key),
+			bytes.NewBuffer(value),
+		)
+		resp, err := h.client.Do(req)
+		if err != nil {
+			fmt.Printf("Error resending PUT to %v\n", slave)
+			return err
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			fmt.Printf("Slave %v returned %v on resending PUT. Not good, desyncs are possible!\n", slave, resp.StatusCode)
+			return err
+		}
+	}
+	return nil
+}
+
+func (h *StorageHTTPHandler) resendDeleteToSlaves(key StorageKey) error {
+	for _, slave := range h.cfg.Slaves {
+		req, _ := http.NewRequest(
+			http.MethodDelete,
+			fmt.Sprintf("http://localhost:%v/delete_internal?key=%v", slave, key),
+			nil,
+		)
+		resp, err := h.client.Do(req)
+		if err != nil {
+			fmt.Printf("Error resending DELETE to %v\n", slave)
+			return err
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			fmt.Printf("Slave %v returned %v on resending DELETE. Not good, desyncs are possible!\n", slave, resp.StatusCode)
+			return err
+		}
+	}
+	return nil
+}
+
 func (h *StorageHTTPHandler) PutHandler(w http.ResponseWriter, req *http.Request) {
 	if !h.isMethodAllowed(http.MethodPut) {
 		w.WriteHeader(http.StatusForbidden)
@@ -66,6 +110,9 @@ func (h *StorageHTTPHandler) PutHandler(w http.ResponseWriter, req *http.Request
 		return
 	}
 	h.storage.Put(StorageKey(key), body)
+	if err := h.resendPutToSlaves(StorageKey(key), body); err != nil {
+		return
+	}
 }
 
 func (h *StorageHTTPHandler) DeleteHandler(w http.ResponseWriter, req *http.Request) {
@@ -80,12 +127,16 @@ func (h *StorageHTTPHandler) DeleteHandler(w http.ResponseWriter, req *http.Requ
 		return
 	}
 	h.storage.Delete(StorageKey(key))
+	if err := h.resendDeleteToSlaves(StorageKey(key)); err != nil {
+		return
+	}
 }
 
 func NewStorageHTTPHandler(storage *Storage, cfg *HTTPConfig) *StorageHTTPHandler {
 	h := &StorageHTTPHandler{}
 	h.storage = storage
 	h.cfg = cfg
+	h.client = &http.Client{}
 	h.mux = &http.ServeMux{}
 	h.mux.HandleFunc("/get", h.GetHandler)
 	h.mux.HandleFunc("/put", h.PutHandler)
